@@ -707,6 +707,33 @@ public class ResultSetModel {
         hasData = true;
     }
 
+    private void processColorOverrides(DBVEntity virtualEntity) {
+        List<DBVColorOverride> coList = virtualEntity.getColorOverrides();
+        if (!CommonUtils.isEmpty(coList)) {
+            for (DBVColorOverride co : coList) {
+                DBDAttributeBinding binding = DBUtils.findObject(attributes, co.getAttributeName());
+                if (binding != null) {
+                    List<AttributeColorSettings> cmList =
+                            colorMapping.computeIfAbsent(binding, k -> new ArrayList<>());
+                    cmList.add(new AttributeColorSettings(co));
+                } else {
+                    log.debug("Attribute '" + co.getAttributeName() + "' not found in bindings. Skip colors.");
+                }
+            }
+        }
+    }
+
+    public void updateColorMapping(DBVEntity virtualEntity, boolean reset) {
+        colorMapping.clear();
+        if (virtualEntity == null) {
+            return;
+        }
+        processColorOverrides(virtualEntity);
+        if (reset) {
+            updateRowColors(true, curRows);
+        }
+    }
+
     public void updateColorMapping(boolean reset) {
         colorMapping.clear();
 
@@ -718,21 +745,7 @@ public class ResultSetModel {
         if (virtualEntity == null) {
             return;
         }
-        {
-            List<DBVColorOverride> coList = virtualEntity.getColorOverrides();
-            if (!CommonUtils.isEmpty(coList)) {
-                for (DBVColorOverride co : coList) {
-                    DBDAttributeBinding binding = DBUtils.findObject(attributes, co.getAttributeName());
-                    if (binding != null) {
-                        List<AttributeColorSettings> cmList =
-                            colorMapping.computeIfAbsent(binding, k -> new ArrayList<>());
-                        cmList.add(new AttributeColorSettings(co));
-                    } else {
-                        log.debug("Attribute '" + co.getAttributeName() + "' not found in bindings. Skip colors.");
-                    }
-                }
-            }
-        }
+        processColorOverrides(virtualEntity);
         if (reset) {
             updateRowColors(true, curRows);
         }
