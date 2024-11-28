@@ -707,7 +707,7 @@ public class ResultSetModel {
         hasData = true;
     }
 
-    private void processColorOverrides(DBVEntity virtualEntity) {
+    private void processColorOverrides(@NotNull DBVEntity virtualEntity) {
         List<DBVColorOverride> coList = virtualEntity.getColorOverrides();
         if (!CommonUtils.isEmpty(coList)) {
             for (DBVColorOverride co : coList) {
