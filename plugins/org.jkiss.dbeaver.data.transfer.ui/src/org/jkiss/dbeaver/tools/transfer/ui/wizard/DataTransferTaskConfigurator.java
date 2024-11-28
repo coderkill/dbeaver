@@ -409,6 +409,9 @@ public class DataTransferTaskConfigurator implements DBTTaskConfigurator, DBTTas
 
         @Override
         public boolean isComplete() {
+            if(objectsTable == null) {
+                return false;
+            }
             if (objectsTable.getItemCount() == 0) {
                 return false;
             }
@@ -430,6 +433,9 @@ public class DataTransferTaskConfigurator implements DBTTaskConfigurator, DBTTas
 
         @Override
         public String getErrorMessage() {
+            if(objectsTable == null) {
+                return null;
+            }
             if (objectsTable.getItemCount() == 0) {
                 return DTUIMessages.data_transfer_error_no_objects_selected;
             }
