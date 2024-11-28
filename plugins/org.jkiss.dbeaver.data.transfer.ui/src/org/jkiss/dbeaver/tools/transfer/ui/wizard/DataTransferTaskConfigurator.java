@@ -433,7 +433,7 @@ public class DataTransferTaskConfigurator implements DBTTaskConfigurator, DBTTas
 
         @Override
         public String getErrorMessage() {
-            if(objectsTable == null) {
+            if (objectsTable == null) {
                 return null;
             }
             if (objectsTable.getItemCount() == 0) {
