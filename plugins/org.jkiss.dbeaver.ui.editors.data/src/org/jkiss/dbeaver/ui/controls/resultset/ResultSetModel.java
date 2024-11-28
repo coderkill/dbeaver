@@ -723,11 +723,8 @@ public class ResultSetModel {
         }
     }
 
-    public void updateColorMapping(DBVEntity virtualEntity, boolean reset) {
+    public void updateColorMapping(@NotNull DBVEntity virtualEntity, boolean reset) {
         colorMapping.clear();
-        if (virtualEntity == null) {
-            return;
-        }
         processColorOverrides(virtualEntity);
         if (reset) {
             updateRowColors(true, curRows);
