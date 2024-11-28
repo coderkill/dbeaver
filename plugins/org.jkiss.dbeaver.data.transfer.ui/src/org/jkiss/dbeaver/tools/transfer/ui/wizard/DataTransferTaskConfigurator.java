@@ -409,7 +409,7 @@ public class DataTransferTaskConfigurator implements DBTTaskConfigurator, DBTTas
 
         @Override
         public boolean isComplete() {
-            if(objectsTable == null) {
+            if (objectsTable == null) {
                 return false;
             }
             if (objectsTable.getItemCount() == 0) {
