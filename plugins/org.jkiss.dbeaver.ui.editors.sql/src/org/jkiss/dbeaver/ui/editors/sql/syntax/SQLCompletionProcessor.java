@@ -45,7 +45,7 @@ import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
 import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
 import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants.SQLExperimentalAutocompletionMode;
+import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants.SQLAutocompletionMode;
 import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLQueryCompletionAnalyzer;
 import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLQueryCompletionProposal;
 import org.jkiss.dbeaver.ui.editors.sql.templates.SQLContext;
@@ -56,7 +56,6 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -84,6 +83,7 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
     }
 
     private final SQLEditorBase editor;
+    private SQLContentAssistant contentAssistant;
 
     public SQLCompletionProcessor(SQLEditorBase editor)
     {
@@ -92,6 +92,7 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
 
     public void initAssistant(SQLContentAssistant contentAssistant) {
         contentAssistant.addCompletionListener(new CompletionListener());
+        this.contentAssistant = contentAssistant;
     }
 
     @Override
@@ -171,7 +172,7 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
 
                     DBPDataSource dataSource = editor.getDataSource();
 
-                    SQLExperimentalAutocompletionMode mode = SQLExperimentalAutocompletionMode.fromPreferences(this.editor.getActivePreferenceStore());
+                    SQLAutocompletionMode mode = SQLAutocompletionMode.fromPreferences(this.editor.getActivePreferenceStore());
 
                     // UIUtils.waitJobCompletion(..) uses job.isFinished() which is not dropped on reschedule,
                     // so we should be able to recreate the whole job object including all its non-reusable dependencies.
@@ -225,8 +226,9 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
                     break;
             }
 
+            int actualCompletionOffset = completionRequestPosition.getOffset();
             List<ICompletionProposal> result = new ArrayList<>(proposals.size());
-            if (completionRequestPosition.getOffset() != request.getDocumentOffset()) {
+            if (actualCompletionOffset != request.getDocumentOffset()) {
                 for (Object cp : proposals) {
                     if (cp instanceof ICompletionProposal proposal && (
                         (cp instanceof ICompletionProposalExtension2 exp && exp.validate(request.getDocument(), completionRequestPosition.getOffset(), null))
@@ -242,6 +244,7 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
                     }
                 }
             }
+            this.contentAssistant.setLastCompletionOffset(actualCompletionOffset);
             return ArrayUtils.toArray(ICompletionProposal.class, result);
         } finally {
             document.removePosition(completionRequestPosition);
@@ -428,16 +431,18 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
         return VALIDATOR;
     }
 
-    private static class CompletionListener implements ICompletionListener, ICompletionListenerExtension {
+    private class CompletionListener implements ICompletionListener, ICompletionListenerExtension {
 
         @Override
         public void assistSessionStarted(ContentAssistEvent event) {
             SQLCompletionProcessor.setSimpleMode(event.isAutoActivated);
+            contentAssistant.assistSessionStarted(event);
         }
 
         @Override
         public void assistSessionEnded(ContentAssistEvent event) {
             simpleMode = false;
+            contentAssistant.setLastCompletionOffset(-1);
         }
 
         @Override
@@ -473,15 +478,13 @@ public class SQLCompletionProcessor implements IContentAssistProcessor
         }
 
         @Override
-        public void install(IContextInformation info,
-            ITextViewer viewer, int offset)
+        public void install(IContextInformation info, ITextViewer viewer, int offset)
         {
             fInstallOffset = offset;
         }
 
         @Override
-        public boolean updatePresentation(int documentPosition,
-            TextPresentation presentation)
+        public boolean updatePresentation(int documentPosition, TextPresentation presentation)
         {
             return false;
         }
